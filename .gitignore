@@ -1,0 +1,72 @@
+# Python/Backend #
+##################
+
+# Virtual Environment
+venv/
+/venv/
+*.venv
+.venv
+
+# Byte-compiled / optimized / C extensions
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Temporary files
+*.log
+*.tmp
+temp_invoice.pdf
+
+
+# Frontend (Vite/React/Node) #
+##############################
+
+# Node dependencies
+/frontend/node_modules
+
+# Build output
+/frontend/dist
+
+# Logs
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+/frontend/lerna-debug.log*
+
+# Environment variables
+/frontend/.env.local
+/frontend/.env.*.local
+
+# Vite-specific files
+/frontend/.vite
+
+
+# Editor/OS Files #
+###################
+
+# VS Code
+.vscode/
+
+
+# Windows
+Thumbs.db
