@@ -1,21 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Set up the worker source for pdf.js to avoid errors
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
 
 function ViewerScreen({ file, extractedData }) {
   const canvasRef = useRef(null);
   const pdfPageRef = useRef(null);
   const [highlightBox, setHighlightBox] = useState(null);
-  const renderTask = useRef(null); // To track the current rendering operation
+  const renderTask = useRef(null); 
 
   useEffect(() => {
     if (!file) return;
 
     const renderPdf = async () => {
-      // --- FIX 1: Prevent re-render errors ---
-      // If a render task is already running, cancel it before starting a new one.
       if (renderTask.current) {
         renderTask.current.cancel();
       }
@@ -48,7 +45,6 @@ function ViewerScreen({ file, extractedData }) {
           renderTask.current = null; // Clear the task when done
 
         } catch (error) {
-          // Don't log an error if it was a planned cancellation
           if (error.name !== 'RenderingCancelledException') {
             console.error("Error rendering PDF:", error);
           }

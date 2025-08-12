@@ -122,8 +122,6 @@ def process_invoice():
                 if not block_words: continue
                 block_text = ' '.join(w['text'] for w in block_words)
                 
-                # --- THIS IS THE FIX ---
-                # Only add the block if its text is not empty after stripping whitespace.
                 if block_text.strip():
                     x0 = min(w['x0'] for w in block_words)
                     top = min(w['top'] for w in block_words)
