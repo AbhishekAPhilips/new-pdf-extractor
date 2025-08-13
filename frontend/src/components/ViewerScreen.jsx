@@ -16,7 +16,6 @@ function ViewerScreen({ file, extractedData }) {
       if (renderTask.current) {
         renderTask.current.cancel();
       }
-
       const fileReader = new FileReader();
       fileReader.onload = async function () {
         const typedarray = new Uint8Array(this.result);
@@ -24,26 +23,16 @@ function ViewerScreen({ file, extractedData }) {
           const pdf = await pdfjsLib.getDocument(typedarray).promise;
           const page = await pdf.getPage(1);
           pdfPageRef.current = page;
-
-          // --- FIX 2: Apply page rotation for correct display ---
           const viewport = page.getViewport({ scale: 1.5, rotation: page.rotate });
-          
           const canvas = canvasRef.current;
           if (!canvas) return;
           const context = canvas.getContext('2d');
           canvas.height = viewport.height;
           canvas.width = viewport.width;
-
-          const renderContext = {
-            canvasContext: context,
-            viewport: viewport,
-          };
-          
-          // Store the new render task
+          const renderContext = { canvasContext: context, viewport: viewport };
           renderTask.current = page.render(renderContext);
           await renderTask.current.promise;
-          renderTask.current = null; // Clear the task when done
-
+          renderTask.current = null;
         } catch (error) {
           if (error.name !== 'RenderingCancelledException') {
             console.error("Error rendering PDF:", error);
@@ -55,11 +44,10 @@ function ViewerScreen({ file, extractedData }) {
 
     renderPdf();
     
-    // Cleanup function to cancel render task if the component unmounts
     return () => {
-        if (renderTask.current) {
-            renderTask.current.cancel();
-        }
+      if (renderTask.current) {
+        renderTask.current.cancel();
+      }
     };
   }, [file]);
 
@@ -67,38 +55,75 @@ function ViewerScreen({ file, extractedData }) {
     const page = pdfPageRef.current;
     const canvas = canvasRef.current;
     if (!bbox || !page || !canvas) return;
-
     const viewport = page.getViewport({ scale: 1, rotation: page.rotate });
     const scale = canvas.width / viewport.width;
-
     const scaledBbox = {
       left: bbox[0] * scale,
       top: bbox[1] * scale,
       width: (bbox[2] - bbox[0]) * scale,
       height: (bbox[3] - bbox[1]) * scale,
     };
-    
-    console.log("Highlighting at:", scaledBbox);
     setHighlightBox(scaledBbox);
   };
 
   return (
     <div className="viewer-container">
       <div className="left-panel">
-        <h2>Extracted Text Blocks</h2>
-        {extractedData && extractedData.length > 0 ? (
-          extractedData.map((item, index) => (
-            <div key={index} className="data-item">
-              <div className="data-text">{item.text}</div>
-              <button className="locate-button" onClick={() => handleLocate(item.bbox)}>
-                Locate
-              </button>
-            </div>
-          ))
-        ) : (
-          <p>No text was extracted from the document.</p>
+        <h2>Extracted Content</h2>
+
+        {extractedData && extractedData.map((item, index) => {
+          if (item.type === 'table') {
+            return (
+              <div key={`item-${index}`} className="table-container">
+                <div className="table-header">
+                  <span>Table</span>
+                  {item.bbox && (
+                    <button className="locate-button" onClick={() => handleLocate(item.bbox)}>
+                        Locate Table
+                    </button>
+                  )}
+                </div>
+                {item.rows.map((row, rowIndex) => (
+                  <div key={`row-${rowIndex}`} className="sub-table">
+                    <div className="sub-table-header">
+                      <span>Row {rowIndex + 1}</span>
+                      {row.bbox && (
+                           <button className="locate-button" onClick={() => handleLocate(row.bbox)}>
+                               Locate Row
+                           </button>
+                      )}
+                    </div>
+                    {row.fields.map((field, fieldIndex) => (
+                      <div key={`field-${fieldIndex}`} className="data-item sub-table-item">
+                        <div className="data-text">{field.text}</div>
+                        {field.bbox && (
+                            <button className="locate-button" onClick={() => handleLocate(field.bbox)}>
+                                Locate
+                            </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            );
+          } else {
+            return (
+              <div key={`item-${index}`} className="data-item">
+                <div className="data-text">{item.text}</div>
+                <button className="locate-button" onClick={() => handleLocate(item.bbox)}>
+                  Locate
+                </button>
+              </div>
+            );
+          }
+        })}
+        
+        {(!extractedData || extractedData.length === 0) && (
+            <p>No content was extracted from the document.</p>
         )}
       </div>
+      
       <div className="right-panel">
         <div className="pdf-canvas-container">
           <canvas ref={canvasRef}></canvas>

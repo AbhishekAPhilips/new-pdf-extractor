@@ -10,7 +10,6 @@ body {
   text-align: center;
 }
 
-/* --- Upload Screen --- */
 .upload-container {
   display: flex;
   flex-direction: column;
@@ -71,7 +70,6 @@ input[type="file"] {
   color: #555;
 }
 
-/* --- Viewer Screen --- */
 .viewer-container {
   display: flex;
   height: 100vh;
@@ -98,23 +96,22 @@ input[type="file"] {
   border-radius: 5px;
   padding: 0.8rem;
   margin-bottom: 0.8rem;
-}
-
-.data-label {
-  font-weight: bold;
-  font-size: 0.9rem;
-  color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
 }
 
 .data-text {
   font-size: 1rem;
   color: #555;
-  margin-top: 0.3rem;
+  margin-top: 0;
   word-wrap: break-word;
+  margin-right: 1rem;
 }
 
 .locate-button {
-  margin-top: 0.5rem;
+  margin-top: 0;
   padding: 0.4rem 0.8rem;
   font-size: 0.8rem;
   color: #007bff;
@@ -123,6 +120,7 @@ input[type="file"] {
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .locate-button:hover {
@@ -153,4 +151,79 @@ input[type="file"] {
   border-radius: 3px;
   z-index: 10;
   transition: all 0.2s ease-in-out;
+}
+
+.table-container {
+  margin-bottom: 1.5rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #e9ecef;
+  padding: 0.5rem 0.8rem;
+  font-weight: bold;
+}
+
+.extracted-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.extracted-table td {
+  border: 1px solid #ddd;
+  padding: 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.cell-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.locate-cell-button {
+  display: inline-block;
+  margin-top: 0;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.7rem;
+  color: #6c757d;
+  background-color: transparent;
+  border: 1px solid #adb5bd;
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.locate-cell-button:hover {
+  background-color: #6c757d;
+  color: #fff;
+}
+
+.sub-table {
+  padding: 0.5rem;
+  margin: 0.5rem;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+}
+
+.sub-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+  text-align: left;
+}
+
+.sub-table-item {
+    margin-bottom: 0.5rem !important;
 }

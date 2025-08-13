@@ -24,7 +24,6 @@ function UploadScreen({ onUploadSuccess }) {
     formData.append('file', selectedFile);
 
     try {
-      // The backend server is running on port 5000
       const response = await fetch('http://127.0.0.1:5000/api/process-invoice', {
         method: 'POST',
         body: formData,
@@ -40,7 +39,7 @@ function UploadScreen({ onUploadSuccess }) {
         throw new Error(data.error);
       }
       
-      onUploadSuccess(selectedFile, data.extracted_data);
+      onUploadSuccess(selectedFile, data);
 
     } catch (err) {
       setError(err.message || 'An unknown error occurred.');
@@ -55,8 +54,8 @@ function UploadScreen({ onUploadSuccess }) {
 
   return (
     <div className="upload-container">
-      <h1>Invoice Extractor AI</h1>
-      <p>Upload a PDF invoice to automatically extract its content.</p>
+      <h1>Invoice Extractor</h1>
+      <p>Upload a PDF to extract its content.</p>
       <div className="upload-box" onClick={onBoxClick}>
         <input
           type="file"
@@ -66,9 +65,7 @@ function UploadScreen({ onUploadSuccess }) {
         />
         <p>{selectedFile ? selectedFile.name : 'Click to select a PDF file'}</p>
       </div>
-
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      
       <button 
         className="upload-button" 
         onClick={handleUpload} 
@@ -76,7 +73,6 @@ function UploadScreen({ onUploadSuccess }) {
       >
         {isLoading ? 'Processing...' : 'Extract Data'}
       </button>
-
       {isLoading && <p className="loading-text">This may take a minute...</p>}
     </div>
   );

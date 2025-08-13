@@ -3,13 +3,13 @@ import UploadScreen from './components/UploadScreen';
 import ViewerScreen from './components/ViewerScreen';
 
 function App() {
-  const [view, setView] = useState('upload'); // 'upload' or 'viewer'
+  const [view, setView] = useState('upload');
   const [file, setFile] = useState(null);
   const [extractedData, setExtractedData] = useState(null);
 
   const handleUploadSuccess = (uploadedFile, data) => {
     setFile(uploadedFile);
-    setExtractedData(data);
+    setExtractedData(data.extracted_data); 
     setView('viewer');
   };
 
