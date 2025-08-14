@@ -9,7 +9,7 @@ CORS(app)
 
 def get_blocks_from_line(line_words, page_width):
     if not line_words: return []
-    gap_threshold = page_width * 0.02 
+    gap_threshold = page_width * 0.01 
     blocks, current_block = [], [line_words[0]]
     for i in range(1, len(line_words)):
         prev_word, current_word = line_words[i-1], line_words[i]
