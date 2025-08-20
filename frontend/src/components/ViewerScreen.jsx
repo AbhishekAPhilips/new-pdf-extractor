@@ -63,6 +63,8 @@ function ViewerScreen({ file, extractedData }) {
       width: (bbox[2] - bbox[0]) * scale,
       height: (bbox[3] - bbox[1]) * scale,
     };
+    console.log("Original BBox:", bbox);
+    console.log("Created Highlight Box:", scaledBbox);
     setHighlightBox(scaledBbox);
   };
 
