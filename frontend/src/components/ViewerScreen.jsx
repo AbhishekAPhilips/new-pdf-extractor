@@ -15,6 +15,13 @@ function ViewerScreen({ file, extractedData }) {
   const renderTask = useRef(null);
   const pageRef = useRef(null);
 
+  // NEW: Log the entire data structure when it's received from the backend
+  useEffect(() => {
+    if (extractedData) {
+      console.log('Full data received from backend:', extractedData);
+    }
+  }, [extractedData]);
+
   useEffect(() => {
     if (!file) return;
 
@@ -57,10 +64,10 @@ function ViewerScreen({ file, extractedData }) {
         const context = canvas.getContext('2d');
         canvas.height = viewport.height;
         canvas.width = viewport.width;
-
+        
         const renderContext = { canvasContext: context, viewport: viewport };
         renderTask.current = page.render(renderContext);
-
+        
         await renderTask.current.promise;
         renderTask.current = null;
       } catch (error) {
@@ -71,7 +78,7 @@ function ViewerScreen({ file, extractedData }) {
     };
 
     renderPage();
-
+    
     return () => {
       if (renderTask.current) {
         renderTask.current.cancel();
@@ -86,18 +93,24 @@ function ViewerScreen({ file, extractedData }) {
     const canvas = canvasRef.current;
     if (!bbox || !page || !canvas) return;
 
-    console.log('Backend bbox:', bbox);
+    // Log for data coming from the backend
+    console.log('Backend bbox (left, top, width, height):', bbox);
 
     const defaultViewport = page.getViewport({ scale: 1, rotation: page.rotate });
     const scale = canvas.width / defaultViewport.width;
 
+    // The bbox array is now [left, top, width, height]
+    // The calculation is a direct scaling of each value
     const scaledBbox = {
       left: bbox[0] * scale,
       top: bbox[1] * scale,
-      width: (bbox[2] - bbox[0]) * scale,
-      height: (bbox[3] - bbox[1]) * scale,
+      width: bbox[2] * scale,
+      height: bbox[3] * scale,
     };
-    console.log('Transformed scaledBbox:', scaledBbox);
+
+    // Log for the scaled data before displaying the highlight
+    console.log('Scaled bbox for frontend (pixels):', scaledBbox);
+    
     setHighlightBox(scaledBbox);
   };
 
@@ -108,7 +121,7 @@ function ViewerScreen({ file, extractedData }) {
   const handleNextPage = () => {
     setCurrentPage(prev => Math.min(prev + 1, numPages));
   };
-
+  
   const pageData = extractedData ? (extractedData[currentPage] || []) : [];
 
   const PlusCircleIcon = () => (
@@ -125,31 +138,31 @@ function ViewerScreen({ file, extractedData }) {
     }
 
     const templateRow = tableData.rows.reduce(
-      (acc, row) => (row.fields.length > acc.fields.length ? row : acc),
-      { fields: [] }
+        (acc, row) => (row.fields.length > acc.fields.length ? row : acc),
+        { fields: [] }
     );
 
     if (templateRow.fields.length === 0) {
-      return null;
+        return null;
     }
 
     const columnBoundaries = templateRow.fields.map(field => ({
       start: field.bbox[0],
-      end: field.bbox[2],
+      end: field.bbox[0] + field.bbox[2], // end is now left + width
     }));
 
     const alignRow = (row) => {
       const alignedFields = Array(columnBoundaries.length).fill(null);
       row.fields.forEach(field => {
         if (!field.bbox) return;
-        const fieldMidpoint = (field.bbox[0] + field.bbox[2]) / 2;
+        const fieldMidpoint = field.bbox[0] + (field.bbox[2] / 2); // midpoint is now left + (width / 2)
         let bestMatchIndex = -1;
         let smallestDistance = Infinity;
 
         columnBoundaries.forEach((boundary, index) => {
           const boundaryMidpoint = (boundary.start + boundary.end) / 2;
           const distance = Math.abs(fieldMidpoint - boundaryMidpoint);
-
+          
           if (distance < smallestDistance) {
             smallestDistance = distance;
             bestMatchIndex = index;
@@ -157,12 +170,12 @@ function ViewerScreen({ file, extractedData }) {
         });
 
         if (bestMatchIndex !== -1 && !alignedFields[bestMatchIndex]) {
-          alignedFields[bestMatchIndex] = field;
+            alignedFields[bestMatchIndex] = field;
         }
       });
       return alignedFields;
     };
-
+    
     const alignedHeaderFields = alignRow(tableData.rows[0]);
     const alignedBodyRows = tableData.rows.slice(1).map(row => ({
       ...row,
@@ -184,8 +197,8 @@ function ViewerScreen({ file, extractedData }) {
             <tr>
               <th className="row-locate-header"></th>
               {alignedHeaderFields.map((header, hIndex) => (
-                <th
-                  key={`header-${hIndex}`}
+                <th 
+                  key={`header-${hIndex}`} 
                   onClick={() => header && handleLocate(header.bbox, `t${tableIndex}-h-${hIndex}`)}
                   className={activeElement === `t${tableIndex}-h-${hIndex}` ? 'active-cell' : ''}
                 >
@@ -198,8 +211,8 @@ function ViewerScreen({ file, extractedData }) {
             {alignedBodyRows.map((row, rIndex) => (
               <tr key={`row-${rIndex}`}>
                 <td className="row-locate-cell">
-                  <button
-                    className="icon-locate-button"
+                  <button 
+                    className="icon-locate-button" 
                     onClick={() => handleLocate(row.bbox, `t${tableIndex}-r${rIndex}`)}
                     title="Locate Row"
                   >
@@ -207,7 +220,7 @@ function ViewerScreen({ file, extractedData }) {
                   </button>
                 </td>
                 {row.alignedFields.map((field, fIndex) => (
-                  <td
+                  <td 
                     key={`field-${fIndex}`}
                     onClick={() => field && handleLocate(field.bbox, `t${tableIndex}-r${rIndex}-c${fIndex}`)}
                     className={activeElement === `t${tableIndex}-r${rIndex}-c${fIndex}` ? 'active-cell' : ''}
@@ -233,8 +246,8 @@ function ViewerScreen({ file, extractedData }) {
             return <AlignedTable key={`item-${index}`} tableData={item} tableIndex={index} />;
           } else {
             return (
-              <div
-                key={`item-${index}`}
+              <div 
+                key={`item-${index}`} 
                 className={`data-item ${activeElement === `d-${index}` ? 'active-cell' : ''}`}
               >
                 <div className="data-text">
@@ -250,7 +263,7 @@ function ViewerScreen({ file, extractedData }) {
           }
         }) : <p>No content was extracted for this page.</p>}
       </div>
-
+      
       <div className="right-panel">
         <div className="page-controls">
           <button onClick={handlePrevPage} disabled={currentPage <= 1}>

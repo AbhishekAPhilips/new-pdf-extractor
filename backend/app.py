@@ -8,6 +8,21 @@ from collections import defaultdict
 app = Flask(__name__)
 CORS(app)
 
+def convert_bbox_format(data):
+    if isinstance(data, dict):
+        new_dict = {}
+        for key, value in data.items():
+            if key == 'bbox' and isinstance(value, list) and len(value) == 4:
+                x0, y0, x1, y1 = value
+                new_dict[key] = [x0, y0, x1 - x0, y1 - y0] 
+            else:
+                new_dict[key] = convert_bbox_format(value)
+        return new_dict
+    elif isinstance(data, list):
+        return [convert_bbox_format(item) for item in data]
+    else:
+        return data
+
 def get_blocks_from_line(line_words, page_width):
     if not line_words: return []
     gap_threshold = page_width * 0.01 
@@ -211,7 +226,9 @@ def process_invoice():
                 page_number = i + 1
                 all_pages_data[page_number] = process_page_sequentially(page)
         
-        return jsonify({"extracted_data": all_pages_data})
+        converted_data = convert_bbox_format(all_pages_data)
+        
+        return jsonify({"extracted_data": converted_data})
 
     except Exception as e:
         traceback.print_exc()
