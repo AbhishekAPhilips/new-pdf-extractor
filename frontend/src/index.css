@@ -194,20 +194,26 @@ input[type="file"] {
   margin-bottom: 1.5rem;
   border: 1px solid #dee2e6;
   border-radius: 8px;
-  overflow: hidden;
   background-color: #fff;
+  overflow-x: auto;
 }
 
 .table-main-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* MODIFIED */
   align-items: center;
   padding: 0.75rem 1rem;
   background-color: #e9ecef;
   font-weight: 600;
   color: #343a40;
   border-bottom: 1px solid #dee2e6;
+  /* REMOVED gap property */
+  position: sticky;
+  left: 0;
+  z-index: 1;
 }
+
+/* REMOVED order properties */
 
 .extracted-table {
   width: 100%;
@@ -223,6 +229,7 @@ input[type="file"] {
   vertical-align: top;
   position: relative;
   transition: background-color 0.2s ease;
+  white-space: nowrap;
 }
 
 .extracted-table th {
