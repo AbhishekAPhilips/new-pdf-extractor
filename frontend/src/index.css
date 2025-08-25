@@ -79,7 +79,7 @@ input[type="file"] {
 }
 
 .left-panel {
-  width: 625px; /* Increased width for tables */
+  width: 630px; 
   flex-shrink: 0;
   padding: 1.5rem;
   background-color: #ffffff;
@@ -106,12 +106,11 @@ input[type="file"] {
   justify-content: space-between;
   align-items: center;
   text-align: left;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
 .data-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background-color: #f1f3f5;
 }
 
 .data-text {
@@ -120,24 +119,7 @@ input[type="file"] {
   margin-right: 1rem;
   overflow-wrap: break-word;
   min-width: 0;
-}
-
-.locate-button {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.8rem;
-  color: #0d6efd;
-  background-color: #e7f1ff;
-  border: 1px solid transparent;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-  font-weight: 500;
-}
-
-.locate-button:hover {
-  background-color: #0d6efd;
-  color: #fff;
+  flex-grow: 1;
 }
 
 .right-panel {
@@ -207,13 +189,24 @@ input[type="file"] {
   transition: all 0.2s ease-in-out;
 }
 
-/* --- NEW Table Styles --- */
+/* --- Table Styles --- */
 .table-wrapper {
   margin-bottom: 1.5rem;
   border: 1px solid #dee2e6;
   border-radius: 8px;
   overflow: hidden;
   background-color: #fff;
+}
+
+.table-main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: #e9ecef;
+  font-weight: 600;
+  color: #343a40;
+  border-bottom: 1px solid #dee2e6;
 }
 
 .extracted-table {
@@ -229,6 +222,7 @@ input[type="file"] {
   border-bottom: 1px solid #dee2e6;
   vertical-align: top;
   position: relative;
+  transition: background-color 0.2s ease;
 }
 
 .extracted-table th {
@@ -237,34 +231,60 @@ input[type="file"] {
   color: #495057;
 }
 
+.extracted-table td, .extracted-table th {
+  cursor: pointer;
+}
+
 .extracted-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.extracted-table tbody tr:hover {
+.extracted-table td:hover, .extracted-table th:hover {
   background-color: #f1f3f5;
 }
 
-.locate-icon-button {
+.active-cell {
+  background-color: #cfe2ff !important;
+}
+
+.row-locate-header {
+  width: 35px;
+  padding: 0;
+  cursor: default !important;
+}
+.row-locate-header:hover {
+  background-color: #f8f9fa !important;
+}
+
+.row-locate-cell {
+  text-align: center;
+  vertical-align: middle;
+  cursor: default;
+  width: 35px;
+}
+.row-locate-cell:hover {
+  background-color: #fff !important;
+}
+.extracted-table tbody tr:hover .row-locate-cell {
+  background-color: #f1f3f5 !important;
+}
+
+.icon-locate-button {
   background: none;
   border: none;
-  cursor: pointer;
-  padding: 2px;
-  margin-left: 8px;
   color: #6c757d;
-  opacity: 0.5;
-  transition: opacity 0.2s, color 0.2s;
-  position: absolute;
-  right: 5px;
-  top: 50%;
-  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0; 
 }
 
-.extracted-table td:hover .locate-icon-button,
-.extracted-table th:hover .locate-icon-button {
-  opacity: 1;
-}
-
-.locate-icon-button:hover {
+.icon-locate-button:hover {
+  background-color: #e9ecef;
   color: #0d6efd;
 }

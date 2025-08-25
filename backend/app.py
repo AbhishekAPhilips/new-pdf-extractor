@@ -3,11 +3,10 @@ import pdfplumber
 import traceback
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from collections import defaultdict
 
 app = Flask(__name__)
 CORS(app)
-
-# --- HELPER FUNCTIONS ---
 
 def get_blocks_from_line(line_words, page_width):
     if not line_words: return []
@@ -73,7 +72,56 @@ def process_line_as_table_row(line_blocks):
         "fields": row_content
     }
 
-# --- MAIN PAGE PROCESSING LOGIC ---
+def merge_shipment_rows(rows):
+    if not rows:
+        return []
+
+    merged_rows = []
+    for row in rows:
+        is_primary_row = len(row['fields']) > 2 or (len(row['fields']) > 0 and row['fields'][0]['bbox'][0] < 150)
+        is_continuation_row = not is_primary_row and merged_rows
+
+        if is_continuation_row:
+            last_row = merged_rows[-1]
+            continuation_text = ' '.join(f['text'] for f in row['fields'])
+            
+            continuation_start_x = row['fields'][0]['bbox'][0]
+            target_field_index = -1
+
+            for i, field in enumerate(last_row['fields']):
+                if field['bbox'][0] <= continuation_start_x < field['bbox'][2]:
+                    target_field_index = i
+                    break
+            
+            if target_field_index == -1:
+                max_width = -1
+                for i, field in enumerate(last_row['fields']):
+                    width = field['bbox'][2] - field['bbox'][0]
+                    if width > max_width:
+                        max_width = width
+                        target_field_index = i
+            
+            if target_field_index != -1:
+                target_field = last_row['fields'][target_field_index]
+                target_field['text'] += f"\n{continuation_text}"
+                
+                new_bbox = [
+                    min(target_field['bbox'][0], row['bbox'][0]),
+                    target_field['bbox'][1],
+                    max(target_field['bbox'][2], row['bbox'][2]),
+                    row['bbox'][3]
+                ]
+                target_field['bbox'] = new_bbox
+                
+                last_row['bbox'][3] = max(last_row['bbox'][3], row['bbox'][3])
+                last_row['bbox'][0] = min(f['bbox'][0] for f in last_row['fields'])
+                last_row['bbox'][2] = max(f['bbox'][2] for f in last_row['fields'])
+            else:
+                merged_rows.append(row)
+        else:
+            merged_rows.append(row)
+    
+    return merged_rows
 
 def process_page_sequentially(page):
     TABLE_HEADERS = {
@@ -86,87 +134,66 @@ def process_page_sequentially(page):
     all_page_elements = []
     words = [word for word in page.extract_words() if word.get('upright', True)]
     
-    lines = {}
+    lines = defaultdict(list)
     for word in words:
-        line_key = int(word['top'])
-        if line_key not in lines: lines[line_key] = []
-        lines[line_key].append(word)
+        lines[int(word['top'])].append(word)
 
     sorted_lines = [sorted(lines[key], key=lambda w: w['x0']) for key in sorted(lines.keys())]
 
     current_table = None
-    last_row_bottom = 0
 
     for line_words in sorted_lines:
         line_text = ' '.join(w['text'] for w in line_words).lower()
         line_blocks = get_blocks_from_line(line_words, page.width)
-        current_row_top = min(w['top'] for w in line_words) if line_words else 0
-
-        end_table = False
-        if current_table:
-            if any(stopper in line_text for stopper in TABLE_STOPPERS):
-                end_table = True
-            
-            # Use a vertical gap to detect the end of a table
-            if (current_row_top - last_row_bottom) > 15: # A gap of 15 points
-                end_table = True
-
-        if end_table:
-            table_x0 = min(r['bbox'][0] for r in current_table['rows'])
-            table_top = min(r['bbox'][1] for r in current_table['rows'])
-            table_x1 = max(r['bbox'][2] for r in current_table['rows'])
-            table_bottom = max(r['bbox'][3] for r in current_table['rows'])
-            current_table['bbox'] = [table_x0, table_top, table_x1, table_bottom]
-            all_page_elements.append(current_table)
-            current_table = None
-
-        if current_table:
-            row_data = process_line_as_table_row(line_blocks)
-            if row_data:
-                first_field_x0 = row_data["fields"][0]["bbox"][0] if row_data["fields"] else 0
-                # If a line starts far to the right, merge it with the previous row's description
-                if current_table["name"] == "shipment_details" and first_field_x0 > 200 and current_table["rows"]:
-                    last_row = current_table["rows"][-1]
-                    # Find the description field to merge into (usually the 4th one)
-                    desc_field_index = 3 
-                    if len(last_row["fields"]) > desc_field_index:
-                        merged_text = ' '.join(f["text"] for f in row_data["fields"])
-                        last_row["fields"][desc_field_index]["text"] += f" {merged_text}"
-                        # Update bbox of the last row to include the new line
-                        last_row["bbox"][3] = row_data["bbox"][3]
-                        last_row_bottom = row_data["bbox"][3]
-                else:
-                    current_table["rows"].append(row_data)
-                    last_row_bottom = row_data["bbox"][3]
-            continue
-
-        matched_header = None
+        
+        matched_header_key = None
         for header_key, keywords in TABLE_HEADERS.items():
-            if sum(1 for keyword in keywords if keyword in line_text) >= 5:
-                matched_header = header_key
+            if sum(1 for keyword in keywords if keyword in line_text) >= 4:
+                matched_header_key = header_key
                 break
         
-        if matched_header:
-            current_table = {"type": "table", "name": matched_header, "rows": []}
+        is_stopper = any(stopper in line_text for stopper in TABLE_STOPPERS)
+
+        if current_table and (matched_header_key or is_stopper):
+            if current_table.get("name") == "shipment_details":
+                current_table["rows"] = merge_shipment_rows(current_table["rows"])
+            
+            if current_table["rows"]:
+                current_table['bbox'] = [
+                    min(r['bbox'][0] for r in current_table['rows']),
+                    min(r['bbox'][1] for r in current_table['rows']),
+                    max(r['bbox'][2] for r in current_table['rows']),
+                    max(r['bbox'][3] for r in current_table['rows'])
+                ]
+                all_page_elements.append(current_table)
+            current_table = None
+
+        if matched_header_key and current_table is None:
+            current_table = {"type": "table", "name": matched_header_key, "rows": []}
             row_data = process_line_as_table_row(line_blocks)
             if row_data:
                 current_table["rows"].append(row_data)
-                last_row_bottom = row_data["bbox"][3]
+        elif current_table and not is_stopper:
+            row_data = process_line_as_table_row(line_blocks)
+            if row_data:
+                current_table["rows"].append(row_data)
         else:
             process_line_as_simple_text(line_blocks, all_page_elements)
 
     if current_table and current_table['rows']:
-        table_x0 = min(r['bbox'][0] for r in current_table['rows'])
-        table_top = min(r['bbox'][1] for r in current_table['rows'])
-        table_x1 = max(r['bbox'][2] for r in current_table['rows'])
-        table_bottom = max(r['bbox'][3] for r in current_table['rows'])
-        current_table['bbox'] = [table_x0, table_top, table_x1, table_bottom]
+        if current_table.get("name") == "shipment_details":
+            current_table["rows"] = merge_shipment_rows(current_table["rows"])
+        
+        current_table['bbox'] = [
+            min(r['bbox'][0] for r in current_table['rows']),
+            min(r['bbox'][1] for r in current_table['rows']),
+            max(r['bbox'][2] for r in current_table['rows']),
+            max(r['bbox'][3] for r in current_table['rows'])
+        ]
         all_page_elements.append(current_table)
         
-    all_page_elements.sort(key=lambda item: item['bbox'][1])
+    all_page_elements.sort(key=lambda item: item.get('bbox', [0,0,0,0])[1])
     return all_page_elements
-
-# --- FLASK ROUTE ---
 
 @app.route("/api/process-invoice", methods=["POST"])
 def process_invoice():
