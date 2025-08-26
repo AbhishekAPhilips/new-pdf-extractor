@@ -9,6 +9,8 @@ function ViewerScreen({ file, extractedData }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState(0);
   const [activeElement, setActiveElement] = useState(null);
+  const [zoom, setZoom] = useState(1.5);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const pdfDocRef = useRef(null);
   const renderTask = useRef(null);
@@ -31,6 +33,7 @@ function ViewerScreen({ file, extractedData }) {
         const typedarray = new Uint8Array(this.result);
         try {
           const pdf = await pdfjsLib.getDocument(typedarray).promise;
+          console.log(pdf)
           pdfDocRef.current = pdf;
           setNumPages(pdf.numPages);
           setCurrentPage(1);
@@ -53,7 +56,7 @@ function ViewerScreen({ file, extractedData }) {
       try {
         const page = await pdfDocRef.current.getPage(currentPage);
         pageRef.current = page;
-        const viewport = page.getViewport({ scale: 1.5, rotation: page.rotate });
+        const viewport = page.getViewport({ scale: zoom, rotation: page.rotate });
         const canvas = canvasRef.current;
         if (!canvas) return;
         const context = canvas.getContext('2d');
@@ -75,7 +78,7 @@ function ViewerScreen({ file, extractedData }) {
         renderTask.current.cancel();
       }
     };
-  }, [pdfDocRef.current, currentPage]);
+  }, [pdfDocRef.current, currentPage, zoom]);
 
   useLayoutEffect(() => {
     Object.keys(lastScrollPositions.current).forEach(tableIndex => {
@@ -116,13 +119,65 @@ function ViewerScreen({ file, extractedData }) {
   const handlePrevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
   const handleNextPage = () => setCurrentPage(prev => Math.min(prev + 1, numPages));
   
+  const handleZoomIn = () => setZoom(prevZoom => prevZoom + 0.25);
+  const handleZoomOut = () => setZoom(prevZoom => Math.max(0.25, prevZoom - 0.25));
+
   const pageData = extractedData ? extractedData.filter(item => item.pageIndex === currentPage - 1) : [];
+
+  const filteredData = searchTerm.trim() === '' 
+    ? pageData
+    : pageData.map(item => {
+        const lowerCaseSearchTerm = searchTerm.toLowerCase();
+        if (item.type === 'table') {
+          const headerRow = item.rows[0];
+          const matchingRows = item.rows.slice(1).filter(row => 
+            row.fields.some(field => 
+              field.text.toLowerCase().includes(lowerCaseSearchTerm)
+            )
+          );
+
+          if (matchingRows.length > 0) {
+            return { ...item, rows: [headerRow, ...matchingRows] };
+          }
+          return null;
+        }
+        
+        if (item.text.toLowerCase().includes(lowerCaseSearchTerm)) {
+          return item;
+        }
+        
+        return null;
+      }).filter(Boolean); 
 
   const PlusCircleIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="8" x2="12" y2="16" />
       <line x1="8" y1="12" x2="16" y2="12" />
+    </svg>
+  );
+
+  const ZoomInIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      <line x1="11" y1="8" x2="11" y2="14"></line>
+      <line x1="8" y1="11" x2="14" y2="11"></line>
+    </svg>
+  );
+
+  const ZoomOutIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      <line x1="8" y1="11" x2="14" y2="11"></line>
+    </svg>
+  );
+
+  const SearchIcon = () => (
+    <svg className="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
   );
 
@@ -195,7 +250,7 @@ function ViewerScreen({ file, extractedData }) {
                     key={`field-${fIndex}`} 
                     onClick={() => field && handleLocate(field, `t${tableIndex}-r${rIndex}-c${fIndex}`)} 
                     className={activeElement === `t${tableIndex}-r${rIndex}-c${fIndex}` ? 'active-cell' : ''}
-                    style={{ whiteSpace: 'pre-wrap' }} // ADDED: This style preserves line breaks
+                    style={{ whiteSpace: 'pre-wrap' }}
                   >
                     {field ? field.text : ''}
                   </td>
@@ -212,7 +267,17 @@ function ViewerScreen({ file, extractedData }) {
     <div className="viewer-container">
       <div className="left-panel">
         <h2>Extracted Content (Page {currentPage})</h2>
-        {pageData.length > 0 ? pageData.map((item, index) => {
+        <div className="search-container">
+          <SearchIcon />
+          <input 
+            type="text"
+            placeholder="Search this page..."
+            className="search-input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        {filteredData.length > 0 ? filteredData.map((item, index) => {
           if (item.type === 'table') {
             return <AlignedTable key={`item-${index}`} tableData={item} tableIndex={index} />;
           }
@@ -226,7 +291,7 @@ function ViewerScreen({ file, extractedData }) {
               )}
             </div>
           );
-        }) : <p>No content was extracted for this page.</p>}
+        }) : <p>No results found for "{searchTerm}".</p>}
       </div>
       
       <div className="right-panel">
@@ -234,6 +299,11 @@ function ViewerScreen({ file, extractedData }) {
           <button onClick={handlePrevPage} disabled={currentPage <= 1}>Previous</button>
           <span>Page {currentPage} of {numPages}</span>
           <button onClick={handleNextPage} disabled={currentPage >= numPages}>Next</button>
+          <div className="zoom-controls">
+            <button onClick={handleZoomOut} className="zoom-button" title="Zoom Out"><ZoomOutIcon /></button>
+            <span>{Math.round(zoom * 100)}%</span>
+            <button onClick={handleZoomIn} className="zoom-button" title="Zoom In"><ZoomInIcon /></button>
+          </div>
         </div>
         <div className="pdf-canvas-container">
           <canvas ref={canvasRef} />
