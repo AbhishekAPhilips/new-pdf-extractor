@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import { PlusCircle, Search, ZoomIn, ZoomOut } from 'lucide-react';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
 
@@ -33,7 +34,7 @@ function ViewerScreen({ file, extractedData }) {
         const typedarray = new Uint8Array(this.result);
         try {
           const pdf = await pdfjsLib.getDocument(typedarray).promise;
-          console.log(pdf)
+          console.log("pdf:",pdf);
           pdfDocRef.current = pdf;
           setNumPages(pdf.numPages);
           setCurrentPage(1);
@@ -147,39 +148,7 @@ function ViewerScreen({ file, extractedData }) {
         }
         
         return null;
-      }).filter(Boolean); 
-
-  const PlusCircleIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="8" x2="12" y2="16" />
-      <line x1="8" y1="12" x2="16" y2="12" />
-    </svg>
-  );
-
-  const ZoomInIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8"></circle>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-      <line x1="11" y1="8" x2="11" y2="14"></line>
-      <line x1="8" y1="11" x2="14" y2="11"></line>
-    </svg>
-  );
-
-  const ZoomOutIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8"></circle>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-      <line x1="8" y1="11" x2="14" y2="11"></line>
-    </svg>
-  );
-
-  const SearchIcon = () => (
-    <svg className="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  );
+      }).filter(Boolean);
 
   const AlignedTable = ({ tableData, tableIndex }) => {
     if (!tableData || !tableData.rows || tableData.rows.length === 0) return null;
@@ -222,7 +191,7 @@ function ViewerScreen({ file, extractedData }) {
           <span>Table</span>
           {tableData.left !== undefined && (
             <button className="icon-locate-button" onClick={() => handleLocate(tableData, `t-${tableIndex}`)} title="Locate Table">
-              <PlusCircleIcon />
+              <PlusCircle size={16} strokeWidth={2.5} />
             </button>
           )}
         </div>
@@ -239,10 +208,10 @@ function ViewerScreen({ file, extractedData }) {
           </thead>
           <tbody>
             {alignedBodyRows.map((row, rIndex) => (
-              <tr key={`row-${rIndex}`}>
+              <tr key={`row-${rIndex}`} className={activeElement === `t${tableIndex}-r${rIndex}` ? 'active-row' : ''}>
                 <td className="row-locate-cell">
                   <button className="icon-locate-button" onClick={() => handleLocate(row, `t${tableIndex}-r${rIndex}`)} title="Locate Row">
-                    <PlusCircleIcon />
+                    <PlusCircle size={16} strokeWidth={2.5} />
                   </button>
                 </td>
                 {row.alignedFields.map((field, fIndex) => (
@@ -268,7 +237,7 @@ function ViewerScreen({ file, extractedData }) {
       <div className="left-panel">
         <h2>Extracted Content (Page {currentPage})</h2>
         <div className="search-container">
-          <SearchIcon />
+          <Search className="search-icon" size={20} strokeWidth={2} />
           <input 
             type="text"
             placeholder="Search this page..."
@@ -286,7 +255,7 @@ function ViewerScreen({ file, extractedData }) {
               <div className="data-text">{item.text}</div>
               {item.left !== undefined && (
                 <button className="icon-locate-button" onClick={() => handleLocate(item, `d-${index}`)} title="Locate">
-                  <PlusCircleIcon />
+                  <PlusCircle size={16} strokeWidth={2.5} />
                 </button>
               )}
             </div>
@@ -300,9 +269,9 @@ function ViewerScreen({ file, extractedData }) {
           <span>Page {currentPage} of {numPages}</span>
           <button onClick={handleNextPage} disabled={currentPage >= numPages}>Next</button>
           <div className="zoom-controls">
-            <button onClick={handleZoomOut} className="zoom-button" title="Zoom Out"><ZoomOutIcon /></button>
+            <button onClick={handleZoomOut} className="zoom-button" title="Zoom Out"><ZoomOut size={20} strokeWidth={2.5} /></button>
             <span>{Math.round(zoom * 100)}%</span>
-            <button onClick={handleZoomIn} className="zoom-button" title="Zoom In"><ZoomInIcon /></button>
+            <button onClick={handleZoomIn} className="zoom-button" title="Zoom In"><ZoomIn size={20} strokeWidth={2.5} /></button>
           </div>
         </div>
         <div className="pdf-canvas-container">
